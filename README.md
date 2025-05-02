@@ -1,1 +1,2 @@
-# PurpleMooSocial
+# PurpleMooSocial Dev Journal
+
