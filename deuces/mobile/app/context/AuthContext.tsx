@@ -1,3 +1,4 @@
+//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\context\AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { tokenStorage } from '../lib/auth';
 import { router } from 'expo-router';
@@ -16,6 +17,7 @@ type AuthContextType = {
   state: AuthState;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  register: (email: string, password: string, username: string) => Promise<void>;
   checkAuth: () => Promise<void>;
 };
 
@@ -31,7 +33,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const checkAuth = async () => {
     try {
       setState(prev => ({ ...prev, isLoading: true }));
-
       const isLoggedIn = await tokenStorage.isLoggedIn();
       if(!isLoggedIn) {
         throw new Error('No token found');
@@ -54,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated: false,
         user: null
       });
+      console.error('An error occurred:', error);
     }
   };
 
@@ -66,12 +68,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading: false,
         isAuthenticated: true,
         user: {
-          email: email, 
+          email, 
           id: response.data.user.id
         }
       });
 
-      router.replace({ pathname: '../(tabs)/home' });
+      router.replace({ pathname: './(tabs)/home' });
     }catch(error) {
       setState(prev => ({ ...prev, isLoading: false }));
       throw error;
@@ -85,7 +87,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isAuthenticated: false,
       user: null
     });
-    router.replace({ pathname: '../login' });
+    router.replace({ pathname: './login' });
+  };
+
+  const register = async (email: string, password: string, username: string) => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
+      const response = await authApi.register(email, password, username);
+
+      await tokenStorage.saveTokens({
+        accessToken: response.data.access_token,
+        refreshToken: response.data.refresh_token,
+      });
+
+      setState({
+        isLoading: false, 
+        isAuthenticated: true, 
+        user: {
+          email, 
+          id: response.data.user.id
+        }
+      });
+      router.replace({pathname: './(tabs)/home'});
+    } catch(error) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
   };
 
   useEffect(() => {
@@ -93,7 +120,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ state, login, logout, checkAuth }}>
+    <AuthContext.Provider 
+      value={{ 
+        state, 
+        login, 
+        logout,
+        register, 
+        checkAuth 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -101,8 +136,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if(context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if(!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

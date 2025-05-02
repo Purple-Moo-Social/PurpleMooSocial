@@ -1,3 +1,4 @@
+//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\index.tsx
 import { View, Text, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 

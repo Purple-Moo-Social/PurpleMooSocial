@@ -1,3 +1,4 @@
+//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\_layout.tsx
 import 'expo-dev-client';
 import { Stack, Redirect } from 'expo-router';
 import { AuthProvider, useAuth } from './context/AuthContext';

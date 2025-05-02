@@ -1,3 +1,4 @@
+//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\services\api.ts
 import axios from "axios";
 import { tokenStorage } from "../lib/auth";
 
@@ -47,6 +48,10 @@ api.interceptors.response.use(
 );
 
 export const authApi = {
+  register: async (email: string, password: string, username: string) => {
+    return api.post("/users/register", { email, password, username });
+  },
+
   login: async (email: string, password: string) => {
     const response = await api.post("/auth/login", { email, password });
     await tokenStorage.saveTokens({
@@ -60,9 +65,6 @@ export const authApi = {
   },
   protected: async () => {
     return await api.get("/auth/protected");
-  },
-  register: async (email: string, password: string) => {
-    return axios.post(`${API_URL}/users/register`, { email, password });
   },
 };
 

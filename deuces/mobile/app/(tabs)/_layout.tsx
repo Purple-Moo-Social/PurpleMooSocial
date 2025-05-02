@@ -1,3 +1,4 @@
+//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\(tabs)\_layout.tsx
 import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
