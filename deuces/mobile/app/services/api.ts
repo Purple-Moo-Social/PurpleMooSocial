@@ -1,8 +1,30 @@
 //C:\Users\envas\PurpleMooSocial\deuces\mobile\app\services\api.ts
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { tokenStorage } from "../lib/auth";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.42:3000";
+interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  user: { id: string };
+}
+
+interface AuthApi {
+  register: (
+    email: string,
+    password: string,
+    username: string
+  ) => Promise<AxiosResponse<AuthResponse>>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<AxiosResponse<AuthResponse>>;
+  logout: () => Promise<void>;
+  protected: () => Promise<
+    AxiosResponse<{ user: { email: string; sub: string } }>
+  >;
+  refresh: (refreshToken: string) => Promise<AxiosResponse<AuthResponse>>;
+}
 
 //create axios instance
 const api = axios.create({
@@ -10,16 +32,29 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000,
 });
 
 // Add request interceptor to inject tokens
-api.interceptors.request.use(async (config) => {
-  const token = await tokenStorage.getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+  (response) => response,
+  (error) => {
+    if (error.code === "ECONNABORTED") {
+      console.log("API Timeout:", error.config.url);
+      return Promise.reject(new Error("Request timeout. Please try again."));
+    }
+
+    if (!error.response) {
+      console.error("Network Error:", error.message);
+      return Promise.reject(
+        new Error("Network error. Please check your connection.")
+      );
+    }
+
+    console.error("API Error:", error.response?.data || error.message);
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
 // Add response interceptor to handle token refresh
 api.interceptors.response.use(
@@ -27,8 +62,13 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      (error.response?.status === 401 && !originalRequest._retry) ||
+      (error.response?.status === 400 &&
+        error.response.data?.message?.includes("Username"))
+    ) {
       originalRequest._retry = true;
+      error.message = "Please remove spaces from username";
 
       try {
         const refreshToken = await tokenStorage.getRefreshToken();
@@ -47,9 +87,13 @@ api.interceptors.response.use(
   }
 );
 
-export const authApi = {
+export const authApi: AuthApi = {
   register: async (email: string, password: string, username: string) => {
-    return api.post("/users/register", { email, password, username });
+    return api.post<{
+      access_token: string;
+      refresh_token: string;
+      user: { id: string };
+    }>("/users/register", { email, password, username });
   },
 
   login: async (email: string, password: string) => {
@@ -66,6 +110,9 @@ export const authApi = {
   protected: async () => {
     return await api.get("/auth/protected");
   },
+  refresh: async (refreshToken: string) => {
+    return api.post<AuthResponse>("/auth/refresh", { refreshToken });
+  },
 };
 
 axios.interceptors.response.use(
@@ -75,3 +122,7 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export default function ApiPlaceholder() {
+  return null;
+}

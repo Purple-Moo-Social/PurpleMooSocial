@@ -2,8 +2,7 @@
 /* eslint-disable react/no-unescaped-entities */
 import { useState } from 'react';
 import { View, TextInput, Pressable, Text, Alert } from 'react-native';
-import { Link, router } from 'expo-router';
-import { authApi } from './services/api';
+import { Link } from 'expo-router';
 import { useAuth } from './context/AuthContext';
 
 export default function LoginScreen() {
@@ -71,7 +70,7 @@ export default function LoginScreen() {
         <Text style={{ marginBottom: 10 }}>
           Don't have an account?
         </Text>
-        <Link href={{ pathname: "../register" }} asChild>
+        <Link href='/register' asChild>
           <Pressable>
             <Text style={{ color: '#800020', fontWeight: 'bold' }}>
               Create Account

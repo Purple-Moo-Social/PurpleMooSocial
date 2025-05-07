@@ -8,7 +8,7 @@ export default function HomeScreen() {
       <Text style={{ fontSize: 24, marginBottom: 20 }}>
         Welcome to Deuces
       </Text>
-      <Link href={{ pathname: '../login' }} asChild>
+      <Link href='/login' asChild>
         <Pressable style={{
           backgroundColor: '#000',
           padding: 15,

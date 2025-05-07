@@ -1,3 +1,4 @@
+//deuces\mobile\app\register.tsx
 import { useState } from "react";
 import { View, TextInput, Pressable, Text, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { Link, router } from 'expo-router';
@@ -10,22 +11,36 @@ export default function RegisterScreen() {
   const { register, state } = useAuth();
 
   const handleRegister = async () => {
+    console.log('Attempting registration with:', { email, username });
     if(!email || !password || !username) {
       Alert.alert('Error', 'All fields are required');
       return;
     }
 
     try {
-      await register(email, password, username);
-      // auto-login handled in AuthContext
-      router.replace({pathname: './(tabs)/home'});
+      const trimUsername = username.trim(); 
+      const response = await register(email, password, trimUsername);
+      console.log('Registration success:', response);
+      router.replace('/(tabs)/home');
     } catch(error: any) {
+      console.error('Full registration error:', {
+        message: error.config,
+        response: error.response?.data,
+        request: error.request,
+        stack: error.stack
+      });
+
       let message = 'Registration failed';
-      if(error.response?.data?.message.includes('email')) message = 'Email already exists';
-      if(error.response?.data?.message.includes('username')) message = 'Username taken';
+      if(error.message.includes('Network Error')) {
+        message = 'Cannot connect to server. Check your network.';
+      } else if(error.response?.data) {
+        message = error.response.data.message;
+      }
       Alert.alert('Error', message);
     }
   };
+
+  
 
   return (
     <View style={{ flex: 1, padding: 20, backgroundColor: '#000' }}>
@@ -50,7 +65,7 @@ export default function RegisterScreen() {
         placeholder="Username"
         placeholderTextColor='#999'
         value={username}
-        onChangeText={setUsername}
+        onChangeText={(text) => setUsername(text.replace(/\s/g, ''))} //remove all whitespace
         style={styles.input}
         autoCapitalize="none"
       />
@@ -67,7 +82,7 @@ export default function RegisterScreen() {
       </Pressable>
       <View style={styles.loginContainer}>
         <Text style={styles.loginText}>Already have an account?</Text>
-        <Link href={{pathname: './login'}} asChild>
+        <Link href='/login' asChild>
           <Pressable>
             <Text style={styles.loginLink}>Login</Text>
           </Pressable>

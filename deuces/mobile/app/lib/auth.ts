@@ -6,8 +6,11 @@ const REFRESH_TOKEN_KEY = "deuces_refresh_token";
 
 export const tokenStorage = {
   async saveTokens(tokens: { accessToken: string; refreshToken: string }) {
-    await SecureStore.setItemAsync(TOKEN_KEY, tokens.accessToken);
-    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, tokens.refreshToken);
+    await SecureStore.setItemAsync(TOKEN_KEY, String(tokens.accessToken));
+    await SecureStore.setItemAsync(
+      REFRESH_TOKEN_KEY,
+      String(tokens.refreshToken)
+    );
   },
 
   async getAccessToken() {
@@ -28,3 +31,7 @@ export const tokenStorage = {
     return !!token;
   },
 };
+
+export default function AuthPlaceholder() {
+  return null;
+}

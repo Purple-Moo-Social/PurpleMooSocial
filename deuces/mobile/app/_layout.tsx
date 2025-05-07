@@ -16,7 +16,7 @@ function AuthLayout() {
   }
 
   if(!state.isAuthenticated) {
-    return <Redirect href={{ pathname: '../login'}} />;
+    return <Redirect href='/login'/>;
   }
 
   return (

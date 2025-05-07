@@ -7,7 +7,7 @@ export default function TabsLayout() {
   const { state } = useAuth();
 
   if(!state.isAuthenticated) {
-    return <Redirect href={{pathname: '../login' }} />;
+    return <Redirect href='/login' />;
   }
 
   return (
