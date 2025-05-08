@@ -169,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           id: response.data.user.id
         }
       });
-      router.replace('/(tabs)/home');
+      router.replace('./(tabs)/home');
     } catch(error) {
       setState(prev => ({ ...prev, isLoading: false }));
       

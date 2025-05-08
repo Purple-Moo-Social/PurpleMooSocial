@@ -3,6 +3,7 @@ import axios, { AxiosResponse } from "axios";
 import { tokenStorage } from "../lib/auth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.42:3000";
+
 interface AuthResponse {
   access_token: string;
   refresh_token: string;
@@ -32,7 +33,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 20000,
 });
 
 // Add request interceptor to inject tokens
@@ -89,11 +90,11 @@ api.interceptors.response.use(
 
 export const authApi: AuthApi = {
   register: async (email: string, password: string, username: string) => {
-    return api.post<{
-      access_token: string;
-      refresh_token: string;
-      user: { id: string };
-    }>("/users/register", { email, password, username });
+    return api.post<AuthResponse>("/auth/register", {
+      email,
+      password,
+      username,
+    });
   },
 
   login: async (email: string, password: string) => {

@@ -21,7 +21,7 @@ export default function RegisterScreen() {
       const trimUsername = username.trim(); 
       const response = await register(email, password, trimUsername);
       console.log('Registration success:', response);
-      router.replace('/(tabs)/home');
+      router.replace('./(tabs)/home');
     } catch(error: any) {
       console.error('Full registration error:', {
         message: error.config,

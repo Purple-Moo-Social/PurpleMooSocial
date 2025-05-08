@@ -22,7 +22,7 @@ function AuthLayout() {
   return (
     <Stack>
       <Stack.Screen 
-        name='(tabs)'
+        name='/(tabs)'
         options={{ headerShown: false }}
       />
       <Stack.Screen 

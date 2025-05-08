@@ -7,7 +7,7 @@ export default function AuthLayout() {
 
   // If authenticated, redirect away from auth pages
   if(state.isAuthenticated) {
-    return <Redirect href='/(tabs)/home'/>;
+    return <Redirect href='./(tabs)/home'/>;
   }
 
   return (
