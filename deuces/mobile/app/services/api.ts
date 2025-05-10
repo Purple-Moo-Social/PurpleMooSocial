@@ -1,128 +1,78 @@
-//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\services\api.ts
-import axios, { AxiosResponse } from "axios";
+// deuces\mobile\app\services\api.ts
 import { tokenStorage } from "../lib/auth";
+import { CONFIG } from "../../src/config";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.42:3000";
+const API_URL = CONFIG.apiUrl;
 
 interface AuthResponse {
   access_token: string;
   refresh_token: string;
-  user: { id: string };
+  user: { id: string; emai?: string };
 }
 
-interface AuthApi {
-  register: (
-    email: string,
-    password: string,
-    username: string
-  ) => Promise<AxiosResponse<AuthResponse>>;
-  login: (
-    email: string,
-    password: string
-  ) => Promise<AxiosResponse<AuthResponse>>;
-  logout: () => Promise<void>;
-  protected: () => Promise<
-    AxiosResponse<{ user: { email: string; sub: string } }>
-  >;
-  refresh: (refreshToken: string) => Promise<AxiosResponse<AuthResponse>>;
-}
+const handleRequest = async <T>(
+  url: string,
+  options: RequestInit
+): Promise<T> => {
+  const response = await fetch(`${API_URL}${url}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
 
-//create axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 20000,
-});
-
-// Add request interceptor to inject tokens
-api.interceptors.request.use(
-  (response) => response,
-  (error) => {
-    if (error.code === "ECONNABORTED") {
-      console.log("API Timeout:", error.config.url);
-      return Promise.reject(new Error("Request timeout. Please try again."));
-    }
-
-    if (!error.response) {
-      console.error("Network Error:", error.message);
-      return Promise.reject(
-        new Error("Network error. Please check your connection.")
-      );
-    }
-
-    console.error("API Error:", error.response?.data || error.message);
-    return Promise.reject(error);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Request failed");
   }
-);
 
-// Add response interceptor to handle token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
+  return response.json();
+};
 
-    if (
-      (error.response?.status === 401 && !originalRequest._retry) ||
-      (error.response?.status === 400 &&
-        error.response.data?.message?.includes("Username"))
-    ) {
-      originalRequest._retry = true;
-      error.message = "Please remove spaces from username";
-
-      try {
-        const refreshToken = await tokenStorage.getRefreshToken();
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        await tokenStorage.clearTokens();
-        return Promise.reject(refreshError);
-      }
-    }
-    return Promise.reject(error);
-  }
-);
-
-export const authApi: AuthApi = {
+export const authApi = {
   register: async (email: string, password: string, username: string) => {
-    return api.post<AuthResponse>("/auth/register", {
-      email,
-      password,
-      username,
+    return handleRequest<AuthResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, username }),
     });
   },
 
   login: async (email: string, password: string) => {
-    const response = await api.post("/auth/login", { email, password });
-    await tokenStorage.saveTokens({
-      accessToken: response.data.access_token,
-      refreshToken: response.data.refresh_token,
+    const tokens = await handleRequest<AuthResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
     });
-    return response;
+
+    await tokenStorage.saveTokens({
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+    });
+    return tokens;
   },
+
   logout: async () => {
     await tokenStorage.clearTokens();
   },
+
   protected: async () => {
-    return await api.get("/auth/protected");
+    const token = await tokenStorage.getAccessToken();
+    const response = await fetch(`${API_URL}/auth/protected`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) throw new Error("Protected route failed");
+    return response.json();
   },
+
   refresh: async (refreshToken: string) => {
-    return api.post<AuthResponse>("/auth/refresh", { refreshToken });
+    return handleRequest<AuthResponse>("/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+    });
   },
 };
-
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("API Error:", error.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
 
 export default function ApiPlaceholder() {
   return null;

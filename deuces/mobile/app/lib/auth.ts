@@ -1,4 +1,4 @@
-//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\lib\auth.ts
+// deuces\mobile\app\lib\auth.ts
 import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "deuces_auth_token";

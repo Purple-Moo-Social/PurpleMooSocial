@@ -1,9 +1,9 @@
-//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\login.tsx
+// deuces\mobile\app\(auth)\login.tsx
 /* eslint-disable react/no-unescaped-entities */
 import { useState } from 'react';
 import { View, TextInput, Pressable, Text, Alert } from 'react-native';
 import { Link } from 'expo-router';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -70,7 +70,7 @@ export default function LoginScreen() {
         <Text style={{ marginBottom: 10 }}>
           Don't have an account?
         </Text>
-        <Link href='/register' asChild>
+        <Link href='/(auth)/register' asChild>
           <Pressable>
             <Text style={{ color: '#800020', fontWeight: 'bold' }}>
               Create Account

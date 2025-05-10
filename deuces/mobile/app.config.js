@@ -1,4 +1,6 @@
-{
+import 'dotenv/config';
+
+export default {
   "expo": {
     "name": "mobile",
     "slug": "mobile",
@@ -48,7 +50,9 @@
       "router": {},
       "eas": {
         "projectId": "33419a3a-2b0a-4616-a6b8-63407e6fd3f4"
-      }
+      },
+      "apiUrl": process.env.EXPO_PUBLIC_API_URL,
+      "env": process.env.EXPO_PUBLIC_ENV
     }
   }
 }

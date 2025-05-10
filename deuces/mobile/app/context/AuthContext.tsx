@@ -1,9 +1,9 @@
-//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\context\AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+// deuces\mobile\app\context\AuthContext.tsx
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { tokenStorage } from '../lib/auth';
-import { router } from 'expo-router';
-import { isAxiosError } from 'axios';
+import { useRouter } from 'expo-router';
 import { authApi } from '../services/api';
+import { Alert } from 'react-native';
 
 // Type definitions
 interface UserData {
@@ -11,17 +11,11 @@ interface UserData {
   id: string;
 }
 
-interface AuthResponse {
-  access_token: string;
-  refresh_token: string;
-  user: { id: string };
-}
-
-type AuthState = {
+interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   user: UserData | null;
-};
+}
 
 type AuthContextType = {
   state: AuthState;
@@ -33,40 +27,16 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Type guard for auth responses
-function isAuthResponse(data: any): data is AuthResponse {
-  return (
-    typeof data?.access_token === 'string' &&
-    typeof data?.refresh_token === 'string' &&
-    typeof data?.user?.id === 'string'
-  );
-}
-
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
   const [state, setState] = useState<AuthState>({
     isLoading: true,
     isAuthenticated: false,
     user: null
   });
 
-  const handleTokenRefresh = async (): Promise<boolean> => {
-    try {
-      const refreshToken = await tokenStorage.getRefreshToken();
-      if (!refreshToken) return false;
+  
 
-      const response = await authApi.refresh(refreshToken);
-      if (!isAuthResponse(response.data)) return false;
-
-      await tokenStorage.saveTokens({
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-      });
-      return true;
-    } catch (error) {
-      console.log('Token refresh failed:', error);
-      return false;
-    }
-  };
 
   const logout = useCallback(async () => {
     try {
@@ -78,87 +48,107 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated: false,
         user: null
       });
-      router.replace('/login');
+      router.replace('/(auth)/login');
+    }
+  }, [router]);
+
+  const handleTokenRefresh = useCallback(async (): Promise<boolean> => {
+    try {
+      const refreshToken = await tokenStorage.getRefreshToken();
+      if (!refreshToken) {
+        console.log('No refresh token available');
+        return false;
+      }
+      
+      console.log('Attempting token refresh...');
+      const { access_token, refresh_token, user } = await authApi.refresh(refreshToken);
+      
+      if(!user?.email || !user?.id) {
+        throw new Error('Invalid user data in refresh response');
+      }
+
+      await tokenStorage.saveTokens({
+        accessToken: access_token,
+        refreshToken: refresh_token
+      });
+
+      setState({
+        isLoading: false,
+        isAuthenticated: true,
+        user : {
+          id: user.id,
+          email: user.email
+        }
+      });
+      console.log('Token refresh successful');
+      return true;
+    } catch (error) {
+      console.log('Token refresh failed:', error instanceof Error ? error.message : error);
+      await tokenStorage.clearTokens();
+      return false;
     }
   }, []);
 
+    
+
   const checkAuth = useCallback(async () => {
+    
     try {
       setState(prev => ({ ...prev, isLoading: true }));
       const token = await tokenStorage.getAccessToken();
      
       if (!token) {
+        console.log('No access token found');
         setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
+      console.log('Checking protected endpoint...');
       try {
-        const response = await authApi.protected();
+        const { user } = await authApi.protected();
+        console.log('Protected endpoint success, user:', user);
         setState({
           isLoading: false,
           isAuthenticated: true,
           user: {
-            email: response.data.user.email,
-            id: response.data.user.sub
+            email: user.email,
+            id: user.sub
           }
         });
-      } catch (error) {
-        if (await handleTokenRefresh()) {
-          await checkAuth(); // Retry with new token
+      } catch(error){
+        console.log('Protected endpoint failed, attempting refresh...', error);
+        const refreshSuccess = await handleTokenRefresh();
+        if(refreshSuccess) {
+          await checkAuth();
         } else {
-          throw error;
+          await logout();
         }
       }
     } catch(error) {
       console.log('Auth check failed:', error);
-      await logout();
-    }
-  }, [logout]);
-
-  const login = async (email: string, password: string) => {
-    try {
-      setState(prev => ({ ...prev, isLoading: true }));
-      const response = await authApi.login(email, password);
-
-      if (!isAuthResponse(response.data)) {
-        throw new Error('Invalid login response format');
-      }
-
-      await tokenStorage.saveTokens({
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-      });
-
-      setState({
-        isLoading: false,
-        isAuthenticated: true,
-        user: {
-          email,
-          id: response.data.user.id
-        }
-      });
-
-      router.replace('/(tabs)/home');
-    } catch(error) {
       setState(prev => ({ ...prev, isLoading: false }));
-      throw error;
     }
-  };
+  }, [logout, handleTokenRefresh]);
+
 
   
 
-  const register = async (email: string, password: string, username: string) => {
+  const login = async (email: string, password: string) => {
+    
     try {
+      console.log('Attempting login with:', { email, password });
       setState(prev => ({ ...prev, isLoading: true }));
-      const response = await authApi.register(email, password, username);
 
-      if (!isAuthResponse(response.data)) {
-        throw new Error('Invalid registration response format');
+      const { access_token, refresh_token, user } = await authApi.login(email, password);
+      
+      if(!access_token || !refresh_token || !user?.id) {
+        throw new Error('Invalid login response');
       }
+      console.log('Login API response:', { access_token: !!access_token, user });
 
       await tokenStorage.saveTokens({
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
+        accessToken: access_token,
+        refreshToken: refresh_token
       });
 
       setState({
@@ -166,26 +156,78 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated: true,
         user: {
           email,
-          id: response.data.user.id
+          id: user.id
         }
       });
-      router.replace('./(tabs)/home');
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      router.replace('/(tabs)/home');
     } catch(error) {
-      setState(prev => ({ ...prev, isLoading: false }));
+      console.error('Login failed:', {
+        message: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      setState({isLoading: false, isAuthenticated: false, user: null });
+      Alert.alert('Error', 'Invalid email or password');
+      return;
+    }
+  };
+
+  const register = async (email: string, password: string, username: string) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    try {
+      console.log('Starting registration...');
       
-      if (isAxiosError(error)) {
-        console.log("Registration failed:", {
-          status: error.response?.status,
-          data: error.response?.data,
-          stack: error.stack
-        });
+      
+      const { access_token, refresh_token, user } = await authApi.register(email, password, username.trim());
+      console.log('Registration API success, tokens:', {
+        access_token: !!access_token,
+        refresh_token: !!refresh_token
+      });
+
+      if(!access_token || !refresh_token) {
+        throw new Error('Server did not return valid tokens');
       }
-      throw error;
+
+      await tokenStorage.saveTokens({
+        accessToken: access_token,
+        refreshToken: refresh_token
+      });
+      console.log('Tokens saved to storage');
+
+      // verifying tokens were saved
+      const storedAccess = await tokenStorage.getAccessToken();
+      const storedRefresh = await tokenStorage.getRefreshToken();
+      console.log('[Register] Tokens verified:', {
+        storedAccess: !!storedAccess,
+        storedRefresh: !!storedRefresh
+      });
+
+      setState({
+        isLoading: false,
+        isAuthenticated: true,
+        user: {
+          email,
+          id: user.id
+        }
+      });
+      console.log('Auth state updated, navigating...');
+      await new Promise(resolve => setTimeout(resolve, 50));
+      console.log('[Register] Navigating to home...');
+      router.replace('/(tabs)/home');
+    } catch(error) {
+      console.error('Registration error:', error);
+      setState(prev => ({ ...prev, isLoading: false }));
+      console.error('Registration error:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      Alert.alert('Error', 'Registration failed. Please try again.');
     }
   };
 
   useEffect(() => {
-    checkAuth();
+      checkAuth();
   }, [checkAuth]);
 
   return (
@@ -209,7 +251,7 @@ export const useAuth = () => {
   return context;
 };
 
-export default function AuthContextProviderWrapper({ 
+export default function AuthContextProvider({ 
   children 
 }: { 
   children: React.ReactNode 

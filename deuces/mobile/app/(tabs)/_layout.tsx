@@ -1,4 +1,4 @@
-//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\(tabs)\_layout.tsx
+// deuces\mobile\app\(tabs)\_layout.tsx
 import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -6,19 +6,21 @@ import { MaterialIcons } from '@expo/vector-icons';
 export default function TabsLayout() {
   const { state } = useAuth();
 
-  if(!state.isAuthenticated) {
-    return <Redirect href='./login' />;
+  if(!state.isLoading && !state.isAuthenticated) {
+    return <Redirect href='/(auth)/login'/>;
   }
 
   return (
       <Tabs
         screenOptions={{
+          lazy: true,
           tabBarActiveTintColor: '#FFD700',
           tabBarInactiveTintColor: '#555',
           tabBarStyle: {
             backgroundColor: '#000',
             borderTopColor: '#800020',
-          }
+          },
+          headerShown: false
         }}
       >
         <Tabs.Screen 
@@ -30,7 +32,7 @@ export default function TabsLayout() {
             ),
           }}
         />
-        <Tabs.Screen 
+        {/* <Tabs.Screen 
           name="profile"
           options={{
             title: 'Profile',
@@ -38,7 +40,7 @@ export default function TabsLayout() {
               <MaterialIcons name='person' size={24} color={color} />
             ),
           }}
-        />
+        /> */}
       </Tabs>
   );
 }

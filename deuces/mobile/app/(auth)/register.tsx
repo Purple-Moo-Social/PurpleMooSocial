@@ -1,42 +1,38 @@
-//deuces\mobile\app\register.tsx
+// deuces\mobile\app\(auth)\register.tsx
 import { useState } from "react";
 import { View, TextInput, Pressable, Text, Alert, ActivityIndicator, StyleSheet } from 'react-native';
-import { Link, router } from 'expo-router';
-import { useAuth } from "./context/AuthContext";
+import { Link, useRouter } from 'expo-router';
+import { useAuth } from "../context/AuthContext";
 
 export default function RegisterScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const { register, state } = useAuth();
 
   const handleRegister = async () => {
-    console.log('Attempting registration with:', { email, username });
+    
     if(!email || !password || !username) {
       Alert.alert('Error', 'All fields are required');
-      return;
     }
 
     try {
-      const trimUsername = username.trim(); 
-      const response = await register(email, password, trimUsername);
-      console.log('Registration success:', response);
-      router.replace('./(tabs)/home');
-    } catch(error: any) {
-      console.error('Full registration error:', {
-        message: error.config,
-        response: error.response?.data,
-        request: error.request,
-        stack: error.stack
-      });
-
+      const trimUsername = username.trim();
+      await register(email, password, trimUsername);
+      router.push('/(tabs)/home');
+    }catch(error: unknown) {
       let message = 'Registration failed';
-      if(error.message.includes('Network Error')) {
-        message = 'Cannot connect to server. Check your network.';
-      } else if(error.response?.data) {
-        message = error.response.data.message;
+
+      if(error instanceof Error) {
+        message = error.message;
+      } else if(typeof error === 'object' && error !== null && 'response' in error) {
+        const errResponse = error as { response?: { data?: { message?: string }}};
+        message = errResponse.response?.data?.message || message;
       }
+
       Alert.alert('Error', message);
+      console.error('Full registration error:', error);
     }
   };
 

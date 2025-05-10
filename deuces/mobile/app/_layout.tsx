@@ -1,12 +1,12 @@
-//C:\Users\envas\PurpleMooSocial\deuces\mobile\app\_layout.tsx
+// deuces\mobile\app\_layout.tsx
 import 'expo-dev-client';
-import { Stack, Redirect } from 'expo-router';
+import { Slot } from 'expo-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 
-function AuthLayout() {
+function RootLayoutNav() {
   const { state } = useAuth();
-
+  console.log('Auth state:', state);
   if(state.isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -15,50 +15,13 @@ function AuthLayout() {
     );
   }
 
-  if(!state.isAuthenticated) {
-    return <Redirect href='/login'/>;
-  }
-
-  return (
-    <Stack>
-      <Stack.Screen 
-        name='/(tabs)'
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name='modal'
-        options={{ presentation: 'modal' }}
-      />
-    </Stack>
-  );
+  return <Slot />;
 }
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Stack>
-        <Stack.Screen 
-          name='index'
-          options={{
-            headerShown: false
-          }}
-        />
-        <Stack.Screen 
-          name='login'
-          options={{
-            title: 'Login',
-            presentation: 'modal'
-          }}
-        />
-        <Stack.Screen 
-          name='register'
-          options={{
-            title: 'Register',
-            presentation: 'modal'
-          }}
-        />
-      </Stack>
-      <AuthLayout />
+      <RootLayoutNav />
     </AuthProvider>
   );
 }
